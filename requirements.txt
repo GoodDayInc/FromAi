@@ -1,0 +1,4 @@
+pandas
+pillow
+customtkinter
+pywin32 # Optional: for .xls file support on Windows
