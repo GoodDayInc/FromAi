@@ -1,0 +1,15 @@
+{
+    "last_path": "C:\\Users\\Владимир",
+    "theme": "light",
+    "last_phrase_to_remove": "Введите фразу или регулярное выражение",
+    "last_url_names_to_delete": "Введите имена URL-ярлыков через запятую",
+    "last_case_sensitive_phrase": false,
+    "last_case_sensitive_url": false,
+    "last_use_regex": false,
+    "last_dry_run": false,
+    "last_folder_prefix": "",
+    "last_folder_suffix": "",
+    "last_folder_numbering": false,
+    "last_folder_start_num": 1,
+    "last_folder_padding": 2
+}
