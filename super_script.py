@@ -223,12 +223,16 @@ class App(ctk.CTk):
         self.size_to_article_map = {}
         self.current_thread = None
         self.stop_event = threading.Event()
+        self.operation_result_counter = 0
         
         self._create_widgets()
         self.logger = Logger(self.log_textbox)
         self.load_sizes()
         self.load_configuration()
         self.define_operations()
+
+        self.logger.info("🎉 Добро пожаловать в Супер Скрипт v3.0!")
+        self.logger.info("💡 Выберите вкладку, папку и операцию для начала работы.")
 
     def _create_widgets(self):
         self._create_top_frame()
@@ -246,7 +250,7 @@ class App(ctk.CTk):
         self.path_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
         self.browse_btn = ctk.CTkButton(self.top_frame, text="Обзор...", command=self.browse_folder)
         self.browse_btn.grid(row=0, column=2, padx=10, pady=10)
-        
+
         self.theme_switch = ctk.CTkSwitch(self.top_frame, text="Темная тема", command=self.toggle_theme)
         self.theme_switch.grid(row=0, column=3, padx=10, pady=10)
 
@@ -266,16 +270,83 @@ class App(ctk.CTk):
 
     def _populate_file_ops_tab(self, tab):
         tab.grid_columnconfigure(0, weight=1)
-        # ... (rest of the population logic)
         
+        op_frame = ctk.CTkFrame(tab)
+        op_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        op_frame.grid_columnconfigure((0,1), weight=1)
+
+        self.file_op_var = ctk.StringVar(value="")
+        ops = [
+            ("Извлечь из '1'", "extract"), ("Переименовать 1-N", "rename_images"),
+            ("Удалить фразу/RegEx", "remove_phrase"), ("Удалить URL-ярлыки", "delete_urls")
+        ]
+        for i, (text, value) in enumerate(ops):
+            ctk.CTkRadioButton(op_frame, text=text, variable=self.file_op_var, value=value).grid(
+                row=i//2, column=i%2, padx=10, pady=5, sticky="w"
+            )
+
+        exec_frame = ctk.CTkFrame(tab)
+        exec_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        exec_frame.grid_columnconfigure(0, weight=1)
+
+        self.dry_run_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(exec_frame, text="Пробный запуск (Dry Run)", variable=self.dry_run_var).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.run_op_button = ctk.CTkButton(exec_frame, text="Выполнить", command=lambda: self.run_operation(self.file_op_var.get()))
+        self.run_op_button.grid(row=0, column=1, padx=10, pady=10, sticky="e")
+
     def _populate_path_gen_tab(self, tab):
-        # ...
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+        ctk.CTkLabel(tab, text="1. Введите названия моделей (каждое с новой строки):").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.path_gen_input = ctk.CTkTextbox(tab)
+        self.path_gen_input.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        ctk.CTkButton(tab, text="Сгенерировать и проверить пути", command=lambda: self.run_operation("generate_paths")).grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+
+        results_frame = ctk.CTkFrame(tab)
+        results_frame.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
+        results_frame.grid_columnconfigure(0, weight=1)
+        results_frame.grid_rowconfigure(1, weight=1)
         
+        self.path_gen_output = ctk.CTkTextbox(results_frame, state="disabled")
+        self.path_gen_output.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+        ctk.CTkButton(results_frame, text="Копировать успешные").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+
     def _populate_folder_creator_tab(self, tab):
-        # ...
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+        ctk.CTkLabel(tab, text="1. Введите названия папок (каждое с новой строки):").grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.folder_creator_input = ctk.CTkTextbox(tab)
+        self.folder_creator_input.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+
+        options_frame = ctk.CTkFrame(tab)
+        options_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+        options_frame.grid_columnconfigure((1,3), weight=1)
+        ctk.CTkLabel(options_frame, text="Префикс:").grid(row=0, column=0, padx=10, pady=5)
+        self.folder_prefix_var = ctk.StringVar()
+        ctk.CTkEntry(options_frame, textvariable=self.folder_prefix_var).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkLabel(options_frame, text="Суффикс:").grid(row=0, column=2, padx=10, pady=5)
+        self.folder_suffix_var = ctk.StringVar()
+        ctk.CTkEntry(options_frame, textvariable=self.folder_suffix_var).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
         
+        self.folder_numbering_var = ctk.BooleanVar()
+        ctk.CTkCheckBox(options_frame, text="Включить автонумерацию", variable=self.folder_numbering_var).grid(row=1, column=0, padx=10, pady=10, sticky="w")
+
+        self.folder_start_num_var = ctk.IntVar(value=1)
+        ctk.CTkEntry(options_frame, textvariable=self.folder_start_num_var, width=60).grid(row=1, column=1, padx=5, pady=5)
+        self.folder_padding_var = ctk.IntVar(value=2)
+        ctk.CTkEntry(options_frame, textvariable=self.folder_padding_var, width=60).grid(row=1, column=2, padx=5, pady=5)
+
+        ctk.CTkButton(tab, text="Создать папки", command=lambda: self.run_operation("create_folders")).grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+
     def _populate_article_converter_tab(self, tab):
-        # ...
+        tab.grid_columnconfigure(0, weight=1)
+        ctk.CTkButton(tab, text="1. Выбрать Excel/CSV файл").grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+        ctk.CTkLabel(tab, text="Файл не выбран").grid(row=1, column=0, padx=20, pady=5)
+        ctk.CTkLabel(tab, text="Найден размер в файле: -", font=ctk.CTkFont(weight="bold")).grid(row=2, column=0, padx=20, pady=10)
+        ctk.CTkLabel(tab, text="2. Выберите НОВЫЙ размер для замены:").grid(row=3, column=0, padx=20, pady=10)
+        ctk.CTkComboBox(tab, values=[]).grid(row=4, column=0, padx=20, pady=5, sticky="ew")
+        ctk.CTkButton(tab, text="3. Создать файл с новым размером", state="disabled").grid(row=5, column=0, padx=20, pady=10, sticky="ew")
+        ctk.CTkButton(tab, text="⚙️ Редактор размеров").grid(row=6, column=0, padx=20, pady=20, sticky="ew")
 
     def _create_bottom_frame(self):
         self.bottom_frame = ctk.CTkFrame(self)
@@ -295,8 +366,37 @@ class App(ctk.CTk):
     # --- Backend and UI Logic ---
 
     def define_operations(self):
-        # This will be filled in later
-        self.operations = {}
+        """Defines all available operations in a structured dictionary."""
+        self.operations = {
+            "extract": {
+                "name": "Извлечь из папок '1'",
+                "function": FileOperations.organize_folders,
+                "get_args": lambda: (self.path_var.get(), self.logger, self.stop_event, self.update_status, self.dry_run_var.get()),
+            },
+            "rename_images": {
+                "name": "Переименовать изображения 1-N",
+                "function": FileOperations.rename_images_sequentially,
+                "get_args": lambda: (self.path_var.get(), self.logger, self.stop_event, self.update_status, self.dry_run_var.get()),
+            },
+            "create_folders": {
+                "name": "Создание папок",
+                "function": FileOperations.create_folders_from_list,
+                "get_args": lambda: (
+                    self.path_var.get(), self.folder_creator_input.get("1.0", "end-1c"),
+                    self.folder_prefix_var.get(), self.folder_suffix_var.get(),
+                    self.folder_numbering_var.get(), self.folder_start_num_var.get(), self.folder_padding_var.get(),
+                    self.logger, self.stop_event, self.update_status, self.dry_run_var.get()
+                ),
+            },
+            "generate_paths": {
+                "name": "Генерация путей для Excel",
+                "function": FileOperations.generate_excel_paths,
+                "get_args": lambda: (
+                    self.path_var.get(), self.path_gen_input.get("1.0", "end-1c"), self.logger, self.stop_event,
+                    self.update_status, self.path_gen_result_callback
+                ),
+            },
+        }
 
     def load_configuration(self):
         self.path_var.set(self.config.get("last_path", str(Path.home())))
@@ -318,7 +418,7 @@ class App(ctk.CTk):
             except (json.JSONDecodeError, FileNotFoundError):
                 self.logger.error("Could not load sizes file, using defaults.")
                 self.size_to_article_map = DEFAULT_SIZES
-    
+
     def save_sizes(self):
         try:
             APP_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -337,8 +437,9 @@ class App(ctk.CTk):
         mode = "dark" if self.theme_switch.get() == 1 else "light"
         ctk.set_appearance_mode(mode)
 
-    def update_status(self, message: str, progress: Optional[float] = None):
-        self.progress_bar.set(progress if progress is not None else 0)
+    def update_status(self, message: str, progress: Optional[int] = None):
+        if progress is not None:
+            self.progress_bar.set(progress / 100)
         # TODO: Add a status label if desired
 
     def stop_operation(self):
@@ -346,6 +447,38 @@ class App(ctk.CTk):
             self.stop_event.set()
             self.logger.warning("--- Попытка остановить операцию... ---")
             self.stop_btn.configure(state="disabled")
+
+    def run_operation(self, op_type: str):
+        if self.current_thread and self.current_thread.is_alive():
+            ctk.messagebox.showwarning("Операция выполняется", "Другая операция уже запущена.")
+            return
+
+        op_details = self.operations.get(op_type)
+        if not op_details:
+            self.logger.error(f"Неизвестный тип операции: {op_type}")
+            return
+
+        def operation_wrapper():
+            self.stop_event.clear()
+            self.stop_btn.configure(state="normal")
+            args = op_details["get_args"]()
+            result = op_details["function"](*args)
+            if isinstance(result, int):
+                self.operation_result_counter = result
+
+            self.stop_btn.configure(state="disabled")
+            if not self.stop_event.is_set():
+                self.logger.success("🎉 Операция успешно завершена!")
+
+        self.current_thread = threading.Thread(target=operation_wrapper, daemon=True)
+        self.current_thread.start()
+
+    def path_gen_result_callback(self, success_str: str, error_str: str):
+        self.path_gen_output.configure(state="normal")
+        self.path_gen_output.delete("1.0", "end")
+        self.path_gen_output.insert("1.0", success_str)
+        self.path_gen_output.configure(state="disabled")
+        # TODO: Add error output box
 
     def _on_closing(self):
         # Save config on exit
