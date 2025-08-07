@@ -15,6 +15,7 @@ except ImportError:
 from logic.config_manager import ConfigManager
 from logic.file_operations import FileOperations
 from utils.logger import Logger
+from ui.navigation_frame import NavigationFrame
 from ui.views import FileOperationsView, PathGeneratorView, FolderCreatorView, ArticleConverterView
 from ui.size_editor import SizeEditor
 from ui.widgets import PlaceholderEntry, Tooltip
@@ -46,8 +47,9 @@ class MainWindow(ctk.CTk):
         self.title("🗂️ Супер Скрипт v3.0 (Refactored)")
         self.geometry("1100x800")
         self.minsize(900, 700)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1)
+        # Configure grid layout: 1 row, 2 columns (sidebar, main content)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
         ctk.set_appearance_mode(self.current_theme_name)
 
@@ -70,35 +72,49 @@ class MainWindow(ctk.CTk):
         self.load_sizes()
 
     def create_widgets(self):
-        self.create_header()
+        # --- Sidebar ---
+        self.navigation_frame = NavigationFrame(self, self, corner_radius=0)
+        self.navigation_frame.grid(row=0, column=0, sticky="nsw")
+        self.nav_buttons = self.navigation_frame.get_buttons()
 
-        self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        self.main_frame.grid_rowconfigure(1, weight=3)  # Assign weight to the notebook panel
-        self.main_frame.grid_rowconfigure(2, weight=2)  # Assign weight to the log/progress panel
-        self.main_frame.grid_columnconfigure(0, weight=1)
+        # --- Main Content Area ---
+        self.main_content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_content_frame.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
+        self.main_content_frame.grid_columnconfigure(0, weight=1)
+        self.main_content_frame.grid_rowconfigure(1, weight=1)
 
-        self.create_path_panel(self.main_frame)
-        self.create_notebook_panel(self.main_frame)
-        self.create_log_and_progress_panel(self.main_frame)
+        # --- Content Widgets ---
+        self.create_path_panel(self.main_content_frame)
+        self.create_views(self.main_content_frame)
+        self.create_log_and_progress_panel(self.main_content_frame)
 
-        self.create_footer()
+        # Select the default view
+        self.select_view("file_ops")
 
-    def create_header(self):
-        header_frame = ctk.CTkFrame(self, height=80, corner_radius=0)
-        header_frame.grid(row=0, column=0, sticky="ew")
+    def create_views(self, parent):
+        """Create all the view frames and store them."""
+        self.views = {
+            "file_ops": FileOperationsView(parent, self, fg_color="transparent"),
+            "path_gen": PathGeneratorView(parent, self, fg_color="transparent"),
+            "folder_creator": FolderCreatorView(parent, self, fg_color="transparent"),
+            "article_converter": ArticleConverterView(parent, self, fg_color="transparent")
+        }
+        for view in self.views.values():
+            view.grid(row=1, column=0, sticky='nsew', padx=0, pady=0)
 
-        title_label = ctk.CTkLabel(header_frame, text="🗂️ Супер Скрипт", font=ctk.CTkFont(size=22, weight="bold"))
-        title_label.pack(side="left", padx=20, pady=10)
+    def select_view(self, view_name: str):
+        """Show the selected view and highlight the corresponding button."""
+        # Highlight the correct button
+        for name, button in self.nav_buttons.items():
+            button.configure(fg_color=("gray70", "gray30") if name == view_name else "transparent")
 
-        controls_container = ctk.CTkFrame(header_frame, fg_color="transparent")
-        controls_container.pack(side="right", padx=20, pady=10)
-
-        self.theme_btn = ctk.CTkButton(controls_container, text="Тема", command=self.toggle_theme, width=100)
-        self.theme_btn.pack(side="left", padx=(0, 10))
-
-        self.help_btn = ctk.CTkButton(controls_container, text="❓ Справка", command=self.show_help, width=100)
-        self.help_btn.pack(side="left")
+        # Show the correct frame
+        for name, frame in self.views.items():
+            if name == view_name:
+                frame.grid(row=1, column=0, sticky='nsew')
+                frame.tkraise()
+            else:
+                frame.grid_remove()
 
     def create_path_panel(self, parent):
         path_frame = ctk.CTkFrame(parent)
@@ -117,25 +133,9 @@ class MainWindow(ctk.CTk):
         self.operation_buttons["path_entry"] = self.path_entry
         self.operation_buttons["browse_btn"] = self.browse_btn
 
-    def create_notebook_panel(self, parent):
-        tab_view = ctk.CTkTabview(parent)
-        tab_view.grid(row=1, column=0, sticky="nsew")
-
-        tabs = {
-            "🗂️ Файловые Операции": FileOperationsView,
-            "📋 Генератор Путей": PathGeneratorView,
-            "🏗️ Создатель Папок": FolderCreatorView,
-            "🔄 Конвертер Артикулов": ArticleConverterView,
-        }
-
-        for name, view_class in tabs.items():
-            tab = tab_view.add(name)
-            view = view_class(tab, self, fg_color="transparent")
-            view.pack(fill="both", expand=True)
-
     def create_log_and_progress_panel(self, parent):
         bottom_frame = ctk.CTkFrame(parent)
-        bottom_frame.grid(row=2, column=0, sticky="ew", pady=(10,0))
+        bottom_frame.grid(row=2, column=0, sticky="nsew", pady=(10,0))
         bottom_frame.grid_columnconfigure(0, weight=1)
         bottom_frame.grid_rowconfigure(0, weight=1)
 
