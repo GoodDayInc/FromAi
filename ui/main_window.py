@@ -36,9 +36,9 @@ class MainWindow(ctk.CTk):
         self.operation_buttons = {}
 
         self.load_configuration()
-        self.define_operations()
         self.setup_window()
         self.create_widgets()
+        self.define_operations()
         self.setup_bindings()
 
         self.after(100, self.show_welcome_message)
