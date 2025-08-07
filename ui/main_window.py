@@ -304,8 +304,8 @@ class MainWindow(ctk.CTk):
         for widget in self.operation_buttons.values():
             widget.configure(state=state)
         self.stop_btn.configure(state="disabled" if active else "normal")
-        self.theme_btn.configure(state=state)
-        self.help_btn.configure(state=state)
+        self.navigation_frame.theme_btn.configure(state=state)
+        self.navigation_frame.help_btn.configure(state=state)
 
     def show_welcome_message(self):
         self.logger.info("🎉 Добро пожаловать в Супер Скрипт v3.0!")
