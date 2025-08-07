@@ -36,12 +36,29 @@ class MainWindow(ctk.CTk):
         self.operation_buttons = {}
 
         self.load_configuration()
+        self._create_state_variables()
         self.setup_window()
         self.create_widgets()
         self.define_operations()
         self.setup_bindings()
 
         self.after(100, self.show_welcome_message)
+        self.after(101, self.update_converter_combobox) # Populate combobox
+
+    def _create_state_variables(self):
+        """Creates all the tkinter variables for the application."""
+        self.path_var = ctk.StringVar(value=self.last_path)
+        self.dry_run_var = ctk.BooleanVar(value=self.last_dry_run)
+        self.phrase_var = ctk.StringVar(value=self.last_phrase_to_remove)
+        self.case_sensitive_phrase_var = ctk.BooleanVar(value=self.last_case_sensitive_phrase)
+        self.use_regex_var = ctk.BooleanVar(value=self.last_use_regex)
+        self.url_names_var = ctk.StringVar(value=self.last_url_names_to_delete)
+        self.case_sensitive_url_var = ctk.BooleanVar(value=self.last_case_sensitive_url)
+        self.folder_prefix_var = ctk.StringVar(value=self.last_folder_prefix)
+        self.folder_suffix_var = ctk.StringVar(value=self.last_folder_suffix)
+        self.folder_numbering_var = ctk.BooleanVar(value=self.last_folder_numbering)
+        self.folder_start_num_var = ctk.IntVar(value=self.last_folder_start_num)
+        self.folder_padding_var = ctk.IntVar(value=self.last_folder_padding)
 
     def setup_window(self):
         self.title("🗂️ Супер Скрипт v3.0 (Refactored)")

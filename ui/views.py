@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from tkinter import messagebox
 from ui.widgets import PlaceholderEntry, Tooltip
 
 class FileOperationsView(ctk.CTkFrame):
@@ -43,7 +44,6 @@ class FileOperationsView(ctk.CTkFrame):
         exec_group.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(exec_group, text="3. Запуск", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=15, pady=(15, 10), sticky="w")
 
-        self.controller.dry_run_var = ctk.BooleanVar(value=self.controller.last_dry_run)
         dry_run_cb = ctk.CTkCheckBox(exec_group, text="✅ Пробный запуск (Dry Run)", variable=self.controller.dry_run_var)
         dry_run_cb.grid(row=1, column=0, padx=15, pady=15, sticky="w")
         Tooltip(dry_run_cb, "Симулировать операцию в логе без реального изменения файлов.")
@@ -61,14 +61,11 @@ class FileOperationsView(ctk.CTkFrame):
         self.remove_phrase_options = ctk.CTkFrame(options_container, fg_color="transparent")
         self.remove_phrase_options.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(self.remove_phrase_options, text="Фраза / RegEx:").grid(row=0, column=0, sticky="w", padx=(0, 5), pady=5)
-        self.controller.phrase_var = ctk.StringVar(value=self.controller.last_phrase_to_remove)
         phrase_entry = PlaceholderEntry(self.remove_phrase_options, textvariable=self.controller.phrase_var, placeholder="Введите фразу или регулярное выражение")
         phrase_entry.grid(row=0, column=1, sticky="ew", pady=5)
         self.controller.operation_buttons["phrase_entry"] = phrase_entry
-        self.controller.case_sensitive_phrase_var = ctk.BooleanVar(value=self.controller.last_case_sensitive_phrase)
         case_cb = ctk.CTkCheckBox(self.remove_phrase_options, text="Регистр", variable=self.controller.case_sensitive_phrase_var)
         case_cb.grid(row=0, column=2, padx=10)
-        self.controller.use_regex_var = ctk.BooleanVar(value=self.controller.last_use_regex)
         regex_cb = ctk.CTkCheckBox(self.remove_phrase_options, text="RegEx", variable=self.controller.use_regex_var)
         regex_cb.grid(row=0, column=3, padx=5)
         self.controller.operation_buttons.update({"phrase_case_cb": case_cb, "phrase_regex_cb": regex_cb})
@@ -76,11 +73,9 @@ class FileOperationsView(ctk.CTkFrame):
         self.delete_urls_options = ctk.CTkFrame(options_container, fg_color="transparent")
         self.delete_urls_options.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(self.delete_urls_options, text="Имена URL (через ','):").grid(row=0, column=0, sticky="w", padx=(0, 5), pady=5)
-        self.controller.url_names_var = ctk.StringVar(value=self.controller.last_url_names_to_delete)
         url_names_entry = PlaceholderEntry(self.delete_urls_options, textvariable=self.controller.url_names_var, placeholder="имя1, частьимени2")
         url_names_entry.grid(row=0, column=1, sticky="ew", pady=5)
         self.controller.operation_buttons["url_entry"] = url_names_entry
-        self.controller.case_sensitive_url_var = ctk.BooleanVar(value=self.controller.last_case_sensitive_url)
         url_case_cb = ctk.CTkCheckBox(self.delete_urls_options, text="Регистр", variable=self.controller.case_sensitive_url_var)
         url_case_cb.grid(row=0, column=2, sticky="w", padx=10)
         self.controller.operation_buttons["url_case_cb"] = url_case_cb
@@ -92,7 +87,7 @@ class FileOperationsView(ctk.CTkFrame):
         selected_op = self.selected_file_op.get()
         if not selected_op: return
 
-        self.options_group.grid() # Show the options group
+        self.options_group.grid()
         op_name = self.controller.operations.get(selected_op, {}).get("name", "Выполнить")
         self.file_op_run_btn.configure(text=f"Выполнить: {op_name}", state="normal")
         for op, frame in self.file_op_option_frames.items():
@@ -170,26 +165,21 @@ class FolderCreatorView(ctk.CTkFrame):
         ctk.CTkLabel(options_group, text="2. Опции", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, padx=15, pady=(15, 10), sticky="w")
 
         ctk.CTkLabel(options_group, text="Префикс:").grid(row=1, column=0, sticky="w", padx=(15, 5), pady=5)
-        self.controller.folder_prefix_var = ctk.StringVar(value=self.controller.last_folder_prefix)
-        self.controller.folder_prefix_entry = PlaceholderEntry(options_group, textvariable=self.controller.folder_prefix_var)
-        self.controller.folder_prefix_entry.grid(row=1, column=1, sticky="ew", padx=(0, 15), pady=5)
+        folder_prefix_entry = PlaceholderEntry(options_group, textvariable=self.controller.folder_prefix_var)
+        folder_prefix_entry.grid(row=1, column=1, sticky="ew", padx=(0, 15), pady=5)
 
         ctk.CTkLabel(options_group, text="Суффикс:").grid(row=2, column=0, sticky="w", padx=(15, 5), pady=5)
-        self.controller.folder_suffix_var = ctk.StringVar(value=self.controller.last_folder_suffix)
-        self.controller.folder_suffix_entry = PlaceholderEntry(options_group, textvariable=self.controller.folder_suffix_var)
-        self.controller.folder_suffix_entry.grid(row=2, column=1, sticky="ew", padx=(0, 15), pady=5)
+        folder_suffix_entry = PlaceholderEntry(options_group, textvariable=self.controller.folder_suffix_var)
+        folder_suffix_entry.grid(row=2, column=1, sticky="ew", padx=(0, 15), pady=5)
 
-        self.controller.folder_numbering_var = ctk.BooleanVar(value=self.controller.last_folder_numbering)
         numbering_cb = ctk.CTkCheckBox(options_group, text="Включить автонумерацию", variable=self.controller.folder_numbering_var)
         numbering_cb.grid(row=3, column=0, columnspan=2, sticky="w", padx=15, pady=10)
 
         num_opts_frame = ctk.CTkFrame(options_group, fg_color="transparent")
         num_opts_frame.grid(row=4, column=0, columnspan=2, sticky="w", padx=15, pady=5)
-        self.controller.folder_start_num_var = ctk.IntVar(value=self.controller.last_folder_start_num)
         ctk.CTkLabel(num_opts_frame, text="Начать с:").pack(side="left")
         start_spinbox = ctk.CTkEntry(num_opts_frame, textvariable=self.controller.folder_start_num_var, width=80)
         start_spinbox.pack(side="left", padx=(5, 20))
-        self.controller.folder_padding_var = ctk.IntVar(value=self.controller.last_folder_padding)
         ctk.CTkLabel(num_opts_frame, text="Цифр (padding):").pack(side="left")
         padding_spinbox = ctk.CTkEntry(num_opts_frame, textvariable=self.controller.folder_padding_var, width=60)
         padding_spinbox.pack(side="left", padx=5)
@@ -197,7 +187,7 @@ class FolderCreatorView(ctk.CTkFrame):
         create_btn = ctk.CTkButton(self, text="✅ Создать папки", height=40, command=lambda: self.controller.run_operation("create_folders"))
         create_btn.grid(row=3, column=0, sticky="ew", pady=20, padx=20)
 
-        self.controller.operation_buttons.update({"folder_create_input": self.controller.folder_creator_input_text, "folder_prefix_entry": self.controller.folder_prefix_entry, "folder_suffix_entry": self.controller.folder_suffix_entry, "folder_numbering_cb": numbering_cb, "folder_start_spinbox": start_spinbox, "folder_padding_spinbox": padding_spinbox, "folder_create_btn": create_btn})
+        self.controller.operation_buttons.update({"folder_create_input": self.controller.folder_creator_input_text, "folder_prefix_entry": folder_prefix_entry, "folder_suffix_entry": folder_suffix_entry, "folder_numbering_cb": numbering_cb, "folder_start_spinbox": start_spinbox, "folder_padding_spinbox": padding_spinbox, "folder_create_btn": create_btn})
 
 class ArticleConverterView(ctk.CTkFrame):
     def __init__(self, master, controller, **kwargs):
