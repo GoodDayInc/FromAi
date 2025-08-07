@@ -124,7 +124,8 @@ class PathGeneratorView(ctk.CTkFrame):
         self.controller = controller
 
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(0, weight=1)  # Make input area resizable
+        self.grid_rowconfigure(2, weight=2)  # Make output area resizable (with more weight)
 
         input_lf = ctk.CTkFrame(self)
         input_lf.grid(row=0, column=0, sticky="nsew", pady=(0, 10), padx=10)
@@ -132,7 +133,7 @@ class PathGeneratorView(ctk.CTkFrame):
         input_lf.grid_rowconfigure(1, weight=1)
         ctk.CTkLabel(input_lf, text="1. Введите названия моделей (каждое с новой строки)").pack(pady=5)
 
-        self.controller.path_gen_input_text = ctk.CTkTextbox(input_lf, wrap="word", height=5)
+        self.controller.path_gen_input_text = ctk.CTkTextbox(input_lf, wrap="word") # Removed fixed height
         self.controller.path_gen_input_text.pack(fill="both", expand=True, padx=5, pady=5)
         Tooltip(self.controller.path_gen_input_text, "Вставьте сюда список моделей. Каждая модель на новой строке.")
 

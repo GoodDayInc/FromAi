@@ -74,7 +74,8 @@ class MainWindow(ctk.CTk):
 
         self.main_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        self.main_frame.grid_rowconfigure(1, weight=1)
+        self.main_frame.grid_rowconfigure(1, weight=3)  # Assign weight to the notebook panel
+        self.main_frame.grid_rowconfigure(2, weight=2)  # Assign weight to the log/progress panel
         self.main_frame.grid_columnconfigure(0, weight=1)
 
         self.create_path_panel(self.main_frame)
@@ -480,14 +481,15 @@ class MainWindow(ctk.CTk):
             output_path = Path(out_path_str)
             if output_path.suffix.lower() == ".xls" and HAS_WIN32:
                 # Handle legacy .xls format via COM
-                with win32.gencache.EnsureDispatch("Excel.Application") as excel:
-                    excel.DisplayAlerts = False
-                    temp_path = str(output_path.with_suffix(".tmp.xlsx"))
-                    df.to_excel(temp_path, index=False, header=False)
-                    wb = excel.Workbooks.Open(os.path.abspath(temp_path))
-                    wb.SaveAs(os.path.abspath(out_path_str), FileFormat=56)
-                    wb.Close()
-                    os.remove(temp_path)
+                excel = win32.gencache.EnsureDispatch("Excel.Application")
+                excel.DisplayAlerts = False
+                temp_path = str(output_path.with_suffix(".tmp.xlsx"))
+                df.to_excel(temp_path, index=False, header=False)
+                wb = excel.Workbooks.Open(os.path.abspath(temp_path))
+                wb.SaveAs(os.path.abspath(out_path_str), FileFormat=56) # 56 is for xlExcel8
+                wb.Close()
+                excel.Application.Quit()
+                os.remove(temp_path)
             elif output_path.suffix.lower() == ".csv":
                 df.to_csv(output_path, index=False, header=False, encoding="utf-8-sig")
             else: # Default to xlsx
