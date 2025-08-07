@@ -59,6 +59,7 @@ class MainWindow(ctk.CTk):
         self.folder_numbering_var = ctk.BooleanVar(value=self.last_folder_numbering)
         self.folder_start_num_var = ctk.IntVar(value=self.last_folder_start_num)
         self.folder_padding_var = ctk.IntVar(value=self.last_folder_padding)
+        self.status_var = ctk.StringVar(value="Готов")
 
     def setup_window(self):
         self.title("🗂️ Супер Скрипт v3.0 (Refactored)")
@@ -189,13 +190,9 @@ class MainWindow(ctk.CTk):
         self.progress_label = ctk.CTkLabel(progress_frame, text="", width=40)
         self.progress_label.grid(row=0, column=1, padx=(10, 0))
 
-    def create_footer(self):
-        footer_frame = ctk.CTkFrame(self, height=30, corner_radius=0)
-        footer_frame.grid(row=2, column=0, sticky="ew")
-
-        self.status_var = ctk.StringVar(value="Готов")
-        self.status_label = ctk.CTkLabel(footer_frame, textvariable=self.status_var, anchor="w")
-        self.status_label.pack(side="left", fill="x", padx=20, pady=5)
+        # Status Bar
+        self.status_label = ctk.CTkLabel(bottom_frame, textvariable=self.status_var, anchor="w")
+        self.status_label.grid(row=2, column=0, sticky="ew", padx=10, pady=(5,0))
 
     def define_operations(self):
         """Defines all available operations in a structured dictionary."""
