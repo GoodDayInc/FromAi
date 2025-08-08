@@ -496,18 +496,24 @@ class MainWindow(ctk.CTk):
             if output_path.suffix.lower() == ".xls" and HAS_WIN32:
                 excel = None
                 try:
-                    # Handle legacy .xls format via COM
-                    excel = win32.gencache.EnsureDispatch("Excel.Application")
+                    excel = win32.gencache.EnsureDispatch('Excel.Application')
                     excel.DisplayAlerts = False
-                    temp_path = str(output_path.with_suffix(".tmp.xlsx"))
-                    df.to_excel(temp_path, index=False, header=False)
-                    wb = excel.Workbooks.Open(os.path.abspath(temp_path))
-                    wb.SaveAs(os.path.abspath(str(output_path)), FileFormat=56) # 56 is for xlExcel8
-                    wb.Close()
-                    os.remove(temp_path)
+                    workbook = excel.Workbooks.Add()
+                    worksheet = workbook.Worksheets(1)
+
+                    # Write headers and data
+                    for col_idx, col_name in enumerate(df.columns, 1):
+                        worksheet.Cells(1, col_idx).Value = col_name
+                    for row_idx, row in enumerate(df.itertuples(index=False), 2):
+                        for col_idx, value in enumerate(row, 1):
+                            worksheet.Cells(row_idx, col_idx).Value = value
+
+                    # Save in XLS format
+                    workbook.SaveAs(os.path.abspath(str(output_path)), FileFormat=56)
+                    workbook.Close(SaveChanges=False)
                 finally:
                     if excel:
-                        excel.Application.Quit()
+                        excel.Quit()
             elif output_path.suffix.lower() == ".csv":
                 df.to_csv(output_path, index=False, header=False, encoding="utf-8-sig")
             else: # Default to xlsx
