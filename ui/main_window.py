@@ -5,12 +5,7 @@ import json
 import threading
 from pathlib import Path
 import pandas as pd
-
-try:
-    import win32com.client as win32
-    HAS_WIN32 = True
-except ImportError:
-    HAS_WIN32 = False
+import xlwt
 
 from logic.config_manager import ConfigManager
 from logic.file_operations import FileOperations
@@ -493,26 +488,19 @@ class MainWindow(ctk.CTk):
             if not out_path_str: return
 
             output_path = Path(out_path_str)
-            if output_path.suffix.lower() == ".xls" and HAS_WIN32:
-                excel = None
-                try:
-                    excel = win32.gencache.EnsureDispatch('Excel.Application')
-                    excel.DisplayAlerts = False
-                    workbook = excel.Workbooks.Add()
-                    worksheet = workbook.Worksheets(1)
+            if output_path.suffix.lower() == ".xls":
+                # Create an xlwt workbook and add a sheet
+                workbook = xlwt.Workbook()
+                sheet = workbook.add_sheet('Sheet1')
 
-                    # Write data (no headers)
-                    for row_idx, row in enumerate(df.itertuples(index=False), 1):
-                        for col_idx, value in enumerate(row, 1):
-                            # Ensure value is a string or number, handle None
-                            worksheet.Cells(row_idx, col_idx).Value = str(value) if value is not None else ""
+                # Write data cell by cell
+                for r_idx, row in enumerate(df.itertuples(index=False)):
+                    for c_idx, value in enumerate(row):
+                        sheet.write(r_idx, c_idx, str(value) if value is not None else "")
 
-                    # Save in XLS format
-                    workbook.SaveAs(os.path.abspath(str(output_path)), FileFormat=56)
-                    workbook.Close(SaveChanges=False)
-                finally:
-                    if excel:
-                        excel.Quit()
+                # Save the workbook
+                workbook.save(output_path)
+
             elif output_path.suffix.lower() == ".csv":
                 df.to_csv(output_path, index=False, header=False, encoding="utf-8-sig")
             else: # Default to xlsx
