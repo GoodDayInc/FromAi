@@ -501,12 +501,11 @@ class MainWindow(ctk.CTk):
                     workbook = excel.Workbooks.Add()
                     worksheet = workbook.Worksheets(1)
 
-                    # Write headers and data
-                    for col_idx, col_name in enumerate(df.columns, 1):
-                        worksheet.Cells(1, col_idx).Value = col_name
-                    for row_idx, row in enumerate(df.itertuples(index=False), 2):
+                    # Write data (no headers)
+                    for row_idx, row in enumerate(df.itertuples(index=False), 1):
                         for col_idx, value in enumerate(row, 1):
-                            worksheet.Cells(row_idx, col_idx).Value = value
+                            # Ensure value is a string or number, handle None
+                            worksheet.Cells(row_idx, col_idx).Value = str(value) if value is not None else ""
 
                     # Save in XLS format
                     workbook.SaveAs(os.path.abspath(str(output_path)), FileFormat=56)
