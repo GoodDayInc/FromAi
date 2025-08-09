@@ -475,6 +475,7 @@ class MainWindow(ctk.CTk):
 
         try:
             df = self.universal_file_reader(self.converter_input_file_path)
+            df = df.fillna('')  # Replace NaN with empty strings
             new_article = str(self.size_to_article_map[new_size])
             df = df.applymap(lambda cell: cell.replace(self.converter_detected_article, new_article) if isinstance(cell, str) else cell)
 
